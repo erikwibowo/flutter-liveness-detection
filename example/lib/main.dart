@@ -64,6 +64,8 @@ class _HomeViewState extends State<HomeView> {
                         .livenessDetection(
                   context: context,
                   config: LivenessDetectionConfig(
+                    cameraResolution: ResolutionPreset
+                        .medium, // adjust the quality of image processing
                     imageQuality: 100, // adjust your image quality result
                     isEnableMaxBrightness:
                         true, // enable disable max brightness when taking face photo
