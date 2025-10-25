@@ -1,3 +1,11 @@
+## 1.0.8 🚀
+
+- 📦 Add packagingOptions with useLegacyPackaging for Android compatibility
+- 🛠️ Fix InputImageConverterError for unsupported image formats
+- 📷 Add configurable camera resolution preset (cameraResolution parameter)
+- ⚡ Improved error handling for ML Kit face detection
+- 🔧 Platform-specific image format optimization (NV21 for Android, BGRA8888 for iOS)
+
 ## 1.0.7 🚀
 
 - ⚡ Update google_mlkit_face_detection for better compability to newest flutter version

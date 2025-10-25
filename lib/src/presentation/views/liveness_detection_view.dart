@@ -1,5 +1,4 @@
 // ignore_for_file: depend_on_referenced_packages
-import 'package:flutter/foundation.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/src/core/constants/liveness_detection_step_constant.dart';
 import 'package:collection/collection.dart';
@@ -260,8 +259,14 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
   void _startLiveFeed() async {
     final camera = availableCams[_cameraIndex];
-    _cameraController =
-        CameraController(camera, ResolutionPreset.high, enableAudio: false);
+    _cameraController = CameraController(
+      camera,
+      widget.config.cameraResolution,
+      enableAudio: false,
+      imageFormatGroup: Platform.isAndroid
+          ? ImageFormatGroup.nv21
+          : ImageFormatGroup.bgra8888,
+    );
 
     _cameraController?.initialize().then((_) {
       if (!mounted) return;
@@ -278,39 +283,44 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   }
 
   Future<void> _processCameraImage(CameraImage cameraImage) async {
-    final WriteBuffer allBytes = WriteBuffer();
-    for (final Plane plane in cameraImage.planes) {
-      allBytes.putUint8List(plane.bytes);
-    }
-    final bytes = allBytes.done().buffer.asUint8List();
-
-    final Size imageSize = Size(
-      cameraImage.width.toDouble(),
-      cameraImage.height.toDouble(),
-    );
-
     final camera = availableCams[_cameraIndex];
     final imageRotation =
         InputImageRotationValue.fromRawValue(camera.sensorOrientation);
     if (imageRotation == null) return;
 
-    final inputImageFormat =
-        InputImageFormatValue.fromRawValue(cameraImage.format.raw);
-    if (inputImageFormat == null) return;
+    InputImage? inputImage;
 
-    final inputImageData = InputImageMetadata(
-      size: imageSize,
-      rotation: imageRotation,
-      format: inputImageFormat,
-      bytesPerRow: cameraImage.planes[0].bytesPerRow,
-    );
+    if (Platform.isAndroid) {
+      if (cameraImage.format.group == ImageFormatGroup.nv21) {
+        inputImage = InputImage.fromBytes(
+          bytes: cameraImage.planes[0].bytes,
+          metadata: InputImageMetadata(
+            size: Size(
+                cameraImage.width.toDouble(), cameraImage.height.toDouble()),
+            rotation: imageRotation,
+            format: InputImageFormat.nv21,
+            bytesPerRow: cameraImage.planes[0].bytesPerRow,
+          ),
+        );
+      }
+    } else if (Platform.isIOS) {
+      if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
+        inputImage = InputImage.fromBytes(
+          bytes: cameraImage.planes[0].bytes,
+          metadata: InputImageMetadata(
+            size: Size(
+                cameraImage.width.toDouble(), cameraImage.height.toDouble()),
+            rotation: imageRotation,
+            format: InputImageFormat.bgra8888,
+            bytesPerRow: cameraImage.planes[0].bytesPerRow,
+          ),
+        );
+      }
+    }
 
-    final inputImage = InputImage.fromBytes(
-      metadata: inputImageData,
-      bytes: bytes,
-    );
-
-    _processImage(inputImage);
+    if (inputImage != null) {
+      _processImage(inputImage);
+    }
   }
 
   Future<void> _processImage(InputImage inputImage) async {
