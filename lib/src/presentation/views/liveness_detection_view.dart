@@ -1,5 +1,4 @@
 // ignore_for_file: depend_on_referenced_packages
-import 'package:flutter/foundation.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/src/core/constants/liveness_detection_step_constant.dart';
 import 'package:collection/collection.dart';
