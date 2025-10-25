@@ -1,5 +1,6 @@
 ## 1.0.8 🚀
 
+- 📦 Add packagingOptions with useLegacyPackaging for Android compatibility
 - 🛠️ Fix InputImageConverterError for unsupported image formats
 - 📷 Add configurable camera resolution preset (cameraResolution parameter)
 - ⚡ Improved error handling for ML Kit face detection
