@@ -13,13 +13,11 @@ class LivenessDetectionView extends StatefulWidget {
   final bool isEnableSnackBar;
   final bool shuffleListWithSmileLast;
   final bool showCurrentStep;
-  final bool isDarkMode;
 
   const LivenessDetectionView({
     super.key,
     required this.config,
     required this.isEnableSnackBar,
-    this.isDarkMode = true,
     this.showCurrentStep = false,
     this.shuffleListWithSmileLast = true,
   });
@@ -143,42 +141,42 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       if (label.blink != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.blink,
-          title: label.blink ?? "Blink 2-3 Times",
+          title: label.blink ?? "Kedip 2-3 Kali",
         ));
       }
 
       if (label.lookRight != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.lookRight,
-          title: label.lookRight ?? "Look Right",
+          title: label.lookRight ?? "Tengok Kanan",
         ));
       }
 
       if (label.lookLeft != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.lookLeft,
-          title: label.lookLeft ?? "Look Left",
+          title: label.lookLeft ?? "Tengok Kiri",
         ));
       }
 
       if (label.lookUp != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.lookUp,
-          title: label.lookUp ?? "Look Up",
+          title: label.lookUp ?? "Tengok Atas",
         ));
       }
 
       if (label.lookDown != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.lookDown,
-          title: label.lookDown ?? "Look Down",
+          title: label.lookDown ?? "Tengok Bawah",
         ));
       }
 
       if (label.smile != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.smile,
-          title: label.smile ?? "Smile",
+          title: label.smile ?? "Senyum",
         ));
       }
       _cachedShuffledSteps = manualRandomItemLiveness(customizedSteps);
@@ -199,7 +197,19 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   void dispose() {
     _timerToDetectFace?.cancel();
     _timerToDetectFace = null;
+
+    // Stop image stream before disposing camera only if streaming
+    if (_cameraController?.value.isStreamingImages == true) {
+      try {
+        _cameraController?.stopImageStream();
+      } catch (e) {
+        debugPrint('Error stopping image stream: $e');
+      }
+    }
+
     _cameraController?.dispose();
+    _cameraController = null;
+
     shuffleListLivenessChallenge(
         list: widget.config.useCustomizedLabel &&
                 widget.config.customizedLabel != null
@@ -258,22 +268,37 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   }
 
   void _startLiveFeed() async {
-    final camera = availableCams[_cameraIndex];
-    _cameraController = CameraController(
-      camera,
-      widget.config.cameraResolution,
-      enableAudio: false,
-      imageFormatGroup: Platform.isAndroid
-          ? ImageFormatGroup.nv21
-          : ImageFormatGroup.bgra8888,
-    );
+    try {
+      final camera = availableCams[_cameraIndex];
+      _cameraController = CameraController(
+        camera,
+        widget.config.cameraResolution,
+        enableAudio: false,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
+      );
 
-    _cameraController?.initialize().then((_) {
-      if (!mounted) return;
-      _cameraController?.startImageStream(_processCameraImage);
-      setState(() {});
-    });
-    _startFaceDetectionTimer();
+      await _cameraController?.initialize();
+
+      if (!mounted) {
+        _cameraController?.dispose();
+        return;
+      }
+
+      await _cameraController?.startImageStream(_processCameraImage);
+
+      if (mounted) {
+        setState(() {});
+      }
+
+      _startFaceDetectionTimer();
+    } catch (e) {
+      debugPrint('Error starting live feed: $e');
+      if (mounted) {
+        setState(() {});
+      }
+    }
   }
 
   void _startFaceDetectionTimer() {
@@ -283,43 +308,58 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   }
 
   Future<void> _processCameraImage(CameraImage cameraImage) async {
-    final camera = availableCams[_cameraIndex];
-    final imageRotation =
-        InputImageRotationValue.fromRawValue(camera.sensorOrientation);
-    if (imageRotation == null) return;
-
-    InputImage? inputImage;
-
-    if (Platform.isAndroid) {
-      if (cameraImage.format.group == ImageFormatGroup.nv21) {
-        inputImage = InputImage.fromBytes(
-          bytes: cameraImage.planes[0].bytes,
-          metadata: InputImageMetadata(
-            size: Size(
-                cameraImage.width.toDouble(), cameraImage.height.toDouble()),
-            rotation: imageRotation,
-            format: InputImageFormat.nv21,
-            bytesPerRow: cameraImage.planes[0].bytesPerRow,
-          ),
-        );
-      }
-    } else if (Platform.isIOS) {
-      if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
-        inputImage = InputImage.fromBytes(
-          bytes: cameraImage.planes[0].bytes,
-          metadata: InputImageMetadata(
-            size: Size(
-                cameraImage.width.toDouble(), cameraImage.height.toDouble()),
-            rotation: imageRotation,
-            format: InputImageFormat.bgra8888,
-            bytesPerRow: cameraImage.planes[0].bytesPerRow,
-          ),
-        );
-      }
+    // Check if widget is still mounted and camera is active
+    if (!mounted || _cameraController?.value.isStreamingImages != true) {
+      return;
     }
 
-    if (inputImage != null) {
-      _processImage(inputImage);
+    // Skip if already processing to prevent blocking the camera stream
+    if (_isBusy) return;
+
+    try {
+      final camera = availableCams[_cameraIndex];
+      final imageRotation =
+          InputImageRotationValue.fromRawValue(camera.sensorOrientation);
+      if (imageRotation == null) return;
+
+      InputImage? inputImage;
+
+      if (Platform.isAndroid) {
+        if (cameraImage.format.group == ImageFormatGroup.nv21) {
+          inputImage = InputImage.fromBytes(
+            bytes: cameraImage.planes[0].bytes,
+            metadata: InputImageMetadata(
+              size: Size(
+                  cameraImage.width.toDouble(), cameraImage.height.toDouble()),
+              rotation: imageRotation,
+              format: InputImageFormat.nv21,
+              bytesPerRow: cameraImage.planes[0].bytesPerRow,
+            ),
+          );
+        }
+      } else if (Platform.isIOS) {
+        if (cameraImage.format.group == ImageFormatGroup.bgra8888) {
+          inputImage = InputImage.fromBytes(
+            bytes: cameraImage.planes[0].bytes,
+            metadata: InputImageMetadata(
+              size: Size(
+                  cameraImage.width.toDouble(), cameraImage.height.toDouble()),
+              rotation: imageRotation,
+              format: InputImageFormat.bgra8888,
+              bytesPerRow: cameraImage.planes[0].bytesPerRow,
+            ),
+          );
+        }
+      }
+
+      if (inputImage != null) {
+        // Process image without blocking the camera stream
+        _processImage(inputImage);
+      }
+    } catch (e) {
+      // Handle buffer inaccessibility or other camera-related errors
+      debugPrint('Error processing camera image: $e');
+      // Don't throw the error, just log it and continue
     }
   }
 
@@ -327,42 +367,47 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
     if (_isBusy) return;
     _isBusy = true;
 
-    final faces =
-        await MachineLearningKitHelper.instance.processInputImage(inputImage);
+    try {
+      final faces =
+          await MachineLearningKitHelper.instance.processInputImage(inputImage);
 
-    if (inputImage.metadata?.size != null &&
-        inputImage.metadata?.rotation != null) {
-      if (faces.isEmpty) {
-        _resetSteps();
-        if (mounted) setState(() => _faceDetectedState = false);
-      } else {
-        if (mounted) setState(() => _faceDetectedState = true);
-        final currentIndex = _stepsKey.currentState?.currentIndex ?? 0;
-        if (widget.config.useCustomizedLabel) {
-          if (currentIndex <
-              customizedLivenessLabel(widget.config.customizedLabel!).length) {
-            _detectFace(
-              face: faces.first,
-              step: customizedLivenessLabel(
-                      widget.config.customizedLabel!)[currentIndex]
-                  .step,
-            );
-          }
+      if (inputImage.metadata?.size != null &&
+          inputImage.metadata?.rotation != null) {
+        if (faces.isEmpty) {
+          _resetSteps();
+          if (mounted) setState(() => _faceDetectedState = false);
         } else {
-          if (currentIndex < stepLiveness.length) {
-            _detectFace(
-              face: faces.first,
-              step: stepLiveness[currentIndex].step,
-            );
+          if (mounted) setState(() => _faceDetectedState = true);
+          final currentIndex = _stepsKey.currentState?.currentIndex ?? 0;
+          if (widget.config.useCustomizedLabel) {
+            if (currentIndex <
+                customizedLivenessLabel(widget.config.customizedLabel!)
+                    .length) {
+              _detectFace(
+                face: faces.first,
+                step: customizedLivenessLabel(
+                        widget.config.customizedLabel!)[currentIndex]
+                    .step,
+              );
+            }
+          } else {
+            if (currentIndex < stepLiveness.length) {
+              _detectFace(
+                face: faces.first,
+                step: stepLiveness[currentIndex].step,
+              );
+            }
           }
         }
+      } else {
+        _resetSteps();
       }
-    } else {
-      _resetSteps();
+    } catch (e) {
+      debugPrint('Error processing image: $e');
+    } finally {
+      _isBusy = false;
+      if (mounted) setState(() {});
     }
-
-    _isBusy = false;
-    if (mounted) setState(() {});
   }
 
   void _detectFace({
@@ -408,15 +453,30 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
   void _takePicture() async {
     try {
-      if (_cameraController == null || _isTakingPicture) return;
+      if (_cameraController == null || _isTakingPicture || !mounted) return;
 
-      if (mounted) setState(() => _isTakingPicture = true);
-      await _cameraController?.stopImageStream();
+      setState(() => _isTakingPicture = true);
+
+      // Stop image stream only if it's currently streaming
+      if (_cameraController?.value.isStreamingImages == true) {
+        try {
+          await _cameraController?.stopImageStream();
+          // Add a small delay to ensure stream is fully stopped
+          await Future.delayed(const Duration(milliseconds: 100));
+        } catch (e) {
+          debugPrint('Error stopping image stream: $e');
+        }
+      }
+
+      if (!mounted || _cameraController == null) {
+        if (mounted) setState(() => _isTakingPicture = false);
+        return;
+      }
 
       final XFile? clickedImage = await _cameraController?.takePicture();
       if (clickedImage == null) {
-        _startLiveFeed();
         if (mounted) setState(() => _isTakingPicture = false);
+        _startLiveFeed();
         return;
       }
 
@@ -426,22 +486,33 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       _onDetectionCompleted(imgToReturn: finalImage);
     } catch (e) {
       debugPrint('Error taking picture: $e');
-      if (mounted) setState(() => _isTakingPicture = false);
-      _startLiveFeed();
+      if (mounted) {
+        setState(() => _isTakingPicture = false);
+        _startLiveFeed();
+      }
     }
   }
 
   void _onDetectionCompleted({XFile? imgToReturn}) async {
     final String? imgPath = imgToReturn?.path;
-    final File imageFile = File(imgPath ?? "");
-    final int fileSizeInBytes = await imageFile.length();
-    final double sizeInKb = fileSizeInBytes / 1024;
-    debugPrint('Image result size : ${sizeInKb.toStringAsFixed(2)} KB');
+
+    // Only calculate file size if we have a valid image
+    if (imgPath != null && imgPath.isNotEmpty) {
+      try {
+        final File imageFile = File(imgPath);
+        final int fileSizeInBytes = await imageFile.length();
+        final double sizeInKb = fileSizeInBytes / 1024;
+        debugPrint('Image result size : ${sizeInKb.toStringAsFixed(2)} KB');
+      } catch (e) {
+        debugPrint('Error getting file size: $e');
+      }
+    }
+
     if (widget.isEnableSnackBar) {
       final snackBar = SnackBar(
         content: Text(imgToReturn == null
-            ? 'Verification of liveness detection failed, please try again. (Exceeds time limit ${widget.config.durationLivenessVerify ?? 45} second.)'
-            : 'Verification of liveness detection success!'),
+            ? 'Verifikasi keaktifan gagal, silakan coba lagi. (Melebihi batas waktu ${widget.config.durationLivenessVerify ?? 45} detik.)'
+            : 'Verifikasi keaktifan berhasil!'),
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(snackBar);
@@ -489,7 +560,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.isDarkMode ? Colors.black : Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: _buildBody(),
     );
   }
@@ -501,7 +572,6 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
             ? _buildDetectionBody()
             : LivenessDetectionTutorialScreen(
                 duration: widget.config.durationLivenessVerify ?? 45,
-                isDarkMode: widget.isDarkMode,
                 onStartTap: () {
                   if (mounted) setState(() => _isInfoStepCompleted = true);
                   _startLiveFeed();
@@ -519,16 +589,14 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
     return Stack(
       children: [
-        Container(
+        SizedBox(
           height: MediaQuery.of(context).size.height,
           width: MediaQuery.of(context).size.width,
-          color: widget.isDarkMode ? Colors.black : Colors.white,
         ),
         LivenessDetectionStepOverlayWidget(
           cameraController: _cameraController,
           duration: widget.config.durationLivenessVerify,
           showDurationUiText: widget.config.showDurationUiText,
-          isDarkMode: widget.isDarkMode,
           isFaceDetected: _faceDetectedState,
           camera: CameraPreview(_cameraController!),
           key: _stepsKey,

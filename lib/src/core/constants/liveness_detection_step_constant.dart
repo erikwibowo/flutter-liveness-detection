@@ -3,26 +3,26 @@ import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 List<LivenessDetectionStepItem> stepLiveness = [
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.blink,
-    title: "Blink 2-3 Times",
+    title: "Kedipkan Mata",
   ),
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.lookUp,
-    title: "Look UP",
+    title: "Tengok Atas",
   ),
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.lookDown,
-    title: "Look DOWN",
+    title: "Tengok Bawah",
   ),
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.lookRight,
-    title: "Look RIGHT",
+    title: "Tengok Kanan",
   ),
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.lookLeft,
-    title: "Look LEFT",
+    title: "Tengok Kiri",
   ),
   LivenessDetectionStepItem(
     step: LivenessDetectionStep.smile,
-    title: "Smile",
+    title: "Tersenyum",
   ),
 ];
