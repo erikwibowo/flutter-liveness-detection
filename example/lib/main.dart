@@ -81,11 +81,6 @@ class _HomeViewState extends State<HomeView> {
                     customizedLabel: LivenessDetectionLabelModel(
                       blink:
                           '', // add empty string to skip/pass this liveness challenge
-                      lookDown: '',
-                      lookLeft: '',
-                      lookRight: '',
-                      lookUp:
-                          'Tengok Atas', // example of customize label name for liveness challenge. it will replace default 'look up'
                       smile: null, // null value to use default label name
                     ),
                   ),

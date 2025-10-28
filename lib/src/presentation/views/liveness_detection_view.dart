@@ -68,18 +68,31 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
     required List<LivenessDetectionStepItem> list,
     required bool isSmileLast,
   }) {
+    if (list.isEmpty) return;
+
     if (isSmileLast) {
-      int? blinkIndex =
+      int blinkIndex =
           list.indexWhere((item) => item.step == LivenessDetectionStep.blink);
-      int? smileIndex =
+      int smileIndex =
           list.indexWhere((item) => item.step == LivenessDetectionStep.smile);
 
       if (blinkIndex != -1 && smileIndex != -1) {
         LivenessDetectionStepItem blinkItem = list.removeAt(blinkIndex);
         LivenessDetectionStepItem smileItem = list
             .removeAt(smileIndex > blinkIndex ? smileIndex - 1 : smileIndex);
+
+        // Shuffle remaining items
         list.shuffle(Random());
-        list.insert(list.length - 1, blinkItem);
+
+        // Insert blink and smile back, ensuring valid positions
+        if (list.isNotEmpty) {
+          // Insert blink at second-to-last position
+          list.insert(list.length, blinkItem);
+        } else {
+          // If list is empty after removing items, just add them back
+          list.add(blinkItem);
+        }
+        // Always add smile at the end
         list.add(smileItem);
       } else {
         list.shuffle(Random());
@@ -141,35 +154,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       if (label.blink != "" && widget.config.useCustomizedLabel) {
         customizedSteps.add(LivenessDetectionStepItem(
           step: LivenessDetectionStep.blink,
-          title: label.blink ?? "Kedip 2-3 Kali",
-        ));
-      }
-
-      if (label.lookRight != "" && widget.config.useCustomizedLabel) {
-        customizedSteps.add(LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookRight,
-          title: label.lookRight ?? "Tengok Kanan",
-        ));
-      }
-
-      if (label.lookLeft != "" && widget.config.useCustomizedLabel) {
-        customizedSteps.add(LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookLeft,
-          title: label.lookLeft ?? "Tengok Kiri",
-        ));
-      }
-
-      if (label.lookUp != "" && widget.config.useCustomizedLabel) {
-        customizedSteps.add(LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookUp,
-          title: label.lookUp ?? "Tengok Atas",
-        ));
-      }
-
-      if (label.lookDown != "" && widget.config.useCustomizedLabel) {
-        customizedSteps.add(LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookDown,
-          title: label.lookDown ?? "Tengok Bawah",
+          title: label.blink ?? "Kedipkan Mata",
         ));
       }
 
@@ -423,22 +408,6 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
         await _handlingBlinkStep(face: face, step: step);
         break;
 
-      case LivenessDetectionStep.lookRight:
-        await _handlingTurnRight(face: face, step: step);
-        break;
-
-      case LivenessDetectionStep.lookLeft:
-        await _handlingTurnLeft(face: face, step: step);
-        break;
-
-      case LivenessDetectionStep.lookUp:
-        await _handlingLookUp(face: face, step: step);
-        break;
-
-      case LivenessDetectionStep.lookDown:
-        await _handlingLookDown(face: face, step: step);
-        break;
-
       case LivenessDetectionStep.smile:
         await _handlingSmile(face: face, step: step);
         break;
@@ -522,14 +491,14 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   }
 
   void _resetSteps() {
-    if (widget.config.useCustomizedLabel) {
-      for (var step
-          in customizedLivenessLabel(widget.config.customizedLabel!)) {
-        final index = customizedLivenessLabel(widget.config.customizedLabel!)
-            .indexWhere((p1) => p1.step == step.step);
-        customizedLivenessLabel(widget.config.customizedLabel!)[index] =
-            customizedLivenessLabel(widget.config.customizedLabel!)[index]
-                .copyWith();
+    if (widget.config.useCustomizedLabel &&
+        widget.config.customizedLabel != null) {
+      final steps = customizedLivenessLabel(widget.config.customizedLabel!);
+      for (var step in steps) {
+        final index = steps.indexWhere((p1) => p1.step == step.step);
+        if (index >= 0 && index < steps.length) {
+          steps[index] = steps[index].copyWith();
+        }
       }
       if (_stepsKey.currentState?.currentIndex != 0) {
         _stepsKey.currentState?.reset();
@@ -538,7 +507,9 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
     } else {
       for (var step in stepLiveness) {
         final index = stepLiveness.indexWhere((p1) => p1.step == step.step);
-        stepLiveness[index] = stepLiveness[index].copyWith();
+        if (index >= 0 && index < stepLiveness.length) {
+          stepLiveness[index] = stepLiveness[index].copyWith();
+        }
       }
       if (_stepsKey.currentState?.currentIndex != 0) {
         _stepsKey.currentState?.reset();
@@ -626,90 +597,6 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
             (blinkThreshold?.leftEyeProbability ?? 0.25) &&
         (face.rightEyeOpenProbability ?? 1.0) <
             (blinkThreshold?.rightEyeProbability ?? 0.25)) {
-      _startProcessing();
-      await _completeStep(step: step);
-    }
-  }
-
-  Future<void> _handlingTurnRight({
-    required Face face,
-    required LivenessDetectionStep step,
-  }) async {
-    if (Platform.isAndroid) {
-      final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-              .instance.thresholdConfig
-              .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-          as LivenessThresholdHead?;
-      if ((face.headEulerAngleY ?? 0) <
-          (headTurnThreshold?.rotationAngle ?? -30)) {
-        _startProcessing();
-        await _completeStep(step: step);
-      }
-    } else if (Platform.isIOS) {
-      final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-              .instance.thresholdConfig
-              .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-          as LivenessThresholdHead?;
-      if ((face.headEulerAngleY ?? 0) >
-          (headTurnThreshold?.rotationAngle ?? 30)) {
-        _startProcessing();
-        await _completeStep(step: step);
-      }
-    }
-  }
-
-  Future<void> _handlingTurnLeft({
-    required Face face,
-    required LivenessDetectionStep step,
-  }) async {
-    if (Platform.isAndroid) {
-      final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-              .instance.thresholdConfig
-              .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-          as LivenessThresholdHead?;
-      if ((face.headEulerAngleY ?? 0) >
-          (headTurnThreshold?.rotationAngle ?? 30)) {
-        _startProcessing();
-        await _completeStep(step: step);
-      }
-    } else if (Platform.isIOS) {
-      final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-              .instance.thresholdConfig
-              .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-          as LivenessThresholdHead?;
-      if ((face.headEulerAngleY ?? 0) <
-          (headTurnThreshold?.rotationAngle ?? -30)) {
-        _startProcessing();
-        await _completeStep(step: step);
-      }
-    }
-  }
-
-  Future<void> _handlingLookUp({
-    required Face face,
-    required LivenessDetectionStep step,
-  }) async {
-    final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-            .instance.thresholdConfig
-            .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-        as LivenessThresholdHead?;
-    if ((face.headEulerAngleX ?? 0) >
-        (headTurnThreshold?.rotationAngle ?? 20)) {
-      _startProcessing();
-      await _completeStep(step: step);
-    }
-  }
-
-  Future<void> _handlingLookDown({
-    required Face face,
-    required LivenessDetectionStep step,
-  }) async {
-    final headTurnThreshold = FlutterLivenessDetectionRandomizedPlugin
-            .instance.thresholdConfig
-            .firstWhereOrNull((p0) => p0 is LivenessThresholdHead)
-        as LivenessThresholdHead?;
-    if ((face.headEulerAngleX ?? 0) <
-        (headTurnThreshold?.rotationAngle ?? -15)) {
       _startProcessing();
       await _completeStep(step: step);
     }
