@@ -1,6 +1,5 @@
 import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/src/presentation/widgets/circular_progress_widget/circular_progress_widget.dart';
-import 'package:lottie/lottie.dart';
 
 class LivenessDetectionStepOverlayWidget extends StatefulWidget {
   final List<LivenessDetectionStepItem> steps;
@@ -247,25 +246,22 @@ class LivenessDetectionStepOverlayWidgetState
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        SizedBox(
-          child: ColorFiltered(
-              colorFilter: ColorFilter.mode(
-                  widget.isFaceDetected
-                      ? Theme.of(context).colorScheme.primary
-                      : Theme.of(context).colorScheme.error,
-                  BlendMode.srcIn),
-              child: LottieBuilder.asset(
-                'packages/flutter_liveness_detection_randomized_plugin/src/core/assets/face-id-anim.json',
-                height: 20,
-                width: 20,
-              )),
+        Icon(
+          widget.isFaceDetected
+              ? Icons.sentiment_satisfied_alt_rounded
+              : Icons.sentiment_dissatisfied_rounded,
+          color: widget.isFaceDetected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.error,
         ),
         const SizedBox(width: 8),
         Text(
           widget.isFaceDetected ? 'Wajah Terdeteksi' : 'Wajah Tidak Terdeteksi',
           style: widget.isFaceDetected
               ? TextStyle(color: Theme.of(context).colorScheme.primary)
-              : TextStyle(color: Theme.of(context).colorScheme.error),
+                  .copyWith(fontWeight: FontWeight.bold)
+              : TextStyle(color: Theme.of(context).colorScheme.error)
+                  .copyWith(fontWeight: FontWeight.bold),
         ),
       ],
     );
