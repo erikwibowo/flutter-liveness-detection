@@ -11,10 +11,7 @@ List<CameraDescription> availableCams = [];
 class LivenessDetectionView extends StatefulWidget {
   final LivenessDetectionConfig config;
 
-  const LivenessDetectionView({
-    super.key,
-    required this.config,
-  });
+  const LivenessDetectionView({super.key, required this.config});
 
   @override
   State<LivenessDetectionView> createState() => _LivenessDetectionScreenState();
@@ -134,47 +131,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       customizedSteps.add(
         LivenessDetectionStepItem(
           step: LivenessDetectionStep.blink,
-          title: label.blink ?? "Blink 2-3 Times",
-        ),
-      );
-    }
-
-    // Add lookRight step if not explicitly skipped
-    if (label.lookRight != "") {
-      customizedSteps.add(
-        LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookRight,
-          title: label.lookRight ?? "Look RIGHT",
-        ),
-      );
-    }
-
-    // Add lookLeft step if not explicitly skipped
-    if (label.lookLeft != "") {
-      customizedSteps.add(
-        LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookLeft,
-          title: label.lookLeft ?? "Look LEFT",
-        ),
-      );
-    }
-
-    // Add lookUp step if not explicitly skipped
-    if (label.lookUp != "") {
-      customizedSteps.add(
-        LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookUp,
-          title: label.lookUp ?? "Look UP",
-        ),
-      );
-    }
-
-    // Add lookDown step if not explicitly skipped
-    if (label.lookDown != "") {
-      customizedSteps.add(
-        LivenessDetectionStepItem(
-          step: LivenessDetectionStep.lookDown,
-          title: label.lookDown ?? "Look DOWN",
+          title: label.blink ?? "Kedipkan mata",
         ),
       );
     }
@@ -184,7 +141,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       customizedSteps.add(
         LivenessDetectionStepItem(
           step: LivenessDetectionStep.smile,
-          title: label.smile ?? "Smile",
+          title: label.smile ?? "Tersenyum",
         ),
       );
     }
@@ -211,7 +168,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
     _timerToDetectFace?.cancel();
     _timerToDetectFace = null;
     _cameraController?.dispose();
-    
+
     if (widget.config.isEnableMaxBrightness) {
       resetApplicationBrightness();
     }
@@ -220,10 +177,10 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
   void _preInitCallBack() {
     _isInfoStepCompleted = !widget.config.startWithInfoScreen;
-    
+
     // Initialize and shuffle steps fresh each time
     _initializeShuffledSteps();
-    
+
     if (widget.config.isEnableMaxBrightness) {
       setApplicationBrightness(1.0);
     }
@@ -347,10 +304,7 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
         final currentIndex = _stepsKey.currentState?.currentIndex ?? 0;
         List<LivenessDetectionStepItem> currentSteps = _getStepsToUse();
         if (currentIndex < currentSteps.length) {
-          _detectFace(
-            face: faces.first,
-            step: currentSteps[currentIndex].step,
-          );
+          _detectFace(face: faces.first, step: currentSteps[currentIndex].step);
         }
       }
     } else {
@@ -440,8 +394,8 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
       final snackBar = SnackBar(
         content: Text(
           imgToReturn == null
-              ? 'Verification of liveness detection failed, please try again. (Exceeds time limit ${widget.config.durationLivenessVerify ?? 45} second.)'
-              : 'Verification of liveness detection success!',
+              ? 'Verifikasi deteksi keaktifan gagal, silakan coba lagi. (Melebihi batas waktu ${widget.config.durationLivenessVerify ?? 45} detik.)'
+              : 'Verifikasi deteksi keaktifan berhasil, gambar siap digunakan.',
         ),
       );
       if (!mounted) return;
@@ -453,18 +407,18 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
   void _resetSteps() {
     List<LivenessDetectionStepItem> currentSteps = _getStepsToUse();
-    
+
     for (var step in currentSteps) {
       final index = currentSteps.indexWhere((p1) => p1.step == step.step);
       if (index != -1) {
         currentSteps[index] = currentSteps[index].copyWith();
       }
     }
-    
+
     if (_stepsKey.currentState?.currentIndex != 0) {
       _stepsKey.currentState?.reset();
     }
-    
+
     if (mounted) setState(() {});
   }
 
@@ -481,20 +435,23 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   /// Initialize and shuffle steps fresh each time
   void _initializeShuffledSteps() {
     List<LivenessDetectionStepItem> baseSteps;
-    
-    if (widget.config.useCustomizedLabel && widget.config.customizedLabel != null) {
+
+    if (widget.config.useCustomizedLabel &&
+        widget.config.customizedLabel != null) {
       baseSteps = customizedLivenessLabel(widget.config.customizedLabel!);
     } else {
-      baseSteps = List.from(stepLiveness); // Create a copy to avoid modifying the original
+      baseSteps = List.from(
+        stepLiveness,
+      ); // Create a copy to avoid modifying the original
     }
-    
+
     shuffleListLivenessChallenge(
       list: baseSteps,
       isSmileLast: widget.config.useCustomizedLabel
           ? false
           : widget.config.shuffleListWithSmileLast,
     );
-    
+
     _shuffledSteps = baseSteps;
   }
 
@@ -506,7 +463,6 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: widget.config.isDarkMode ? Colors.black : Colors.white,
       body: _buildBody(),
     );
   }
@@ -536,10 +492,9 @@ class _LivenessDetectionScreenState extends State<LivenessDetectionView> {
 
     return Stack(
       children: [
-        Container(
+        SizedBox(
           height: MediaQuery.of(context).size.height,
           width: MediaQuery.of(context).size.width,
-          color: widget.config.isDarkMode ? Colors.black : Colors.white,
         ),
         LivenessDetectionStepOverlayWidget(
           cameraController: _cameraController,

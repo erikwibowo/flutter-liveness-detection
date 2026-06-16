@@ -10,10 +10,6 @@ void exampleUsage() {
     useCustomizedLabel: true,
     customizedLabel: LivenessDetectionLabelModel(
       blink: '', // Empty string = skip this challenge
-      lookUp: 'Tengok Atas', // Custom label
-      lookDown: '', // Empty string = skip this challenge
-      lookLeft: null, // null = use default label "Look LEFT"
-      lookRight: null, // null = use default label "Look RIGHT"
       smile: 'Senyum Dong!', // Custom label
     ),
   );
@@ -24,10 +20,6 @@ void exampleUsage() {
     useCustomizedLabel: true,
     customizedLabel: LivenessDetectionLabelModel(
       blink: 'Kedipkan Mata',
-      lookUp: 'Lihat Atas',
-      lookDown: 'Lihat Bawah',
-      lookLeft: 'Lihat Kiri',
-      lookRight: 'Lihat Kanan',
       smile: 'Tersenyum',
     ),
   );
@@ -38,10 +30,6 @@ void exampleUsage() {
     useCustomizedLabel: true,
     customizedLabel: LivenessDetectionLabelModel(
       blink: null, // Use default "Blink 2-3 Times"
-      lookUp: '', // Skip
-      lookDown: '', // Skip
-      lookLeft: 'Turn Left Please',
-      lookRight: 'Turn Right Please',
       smile: null, // Use default "Smile"
     ),
   );

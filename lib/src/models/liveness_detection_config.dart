@@ -36,6 +36,6 @@ class LivenessDetectionConfig {
     this.isDarkMode = true,
   }) : assert(
          !useCustomizedLabel || customizedLabel != null,
-         'customizedLabel must not be null when useCustomizedLabel is true',
+         'customizedLabel tidak boleh null ketika useCustomizedLabel is true',
        );
 }

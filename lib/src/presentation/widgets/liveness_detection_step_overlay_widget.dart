@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/index.dart';
 import 'package:flutter_liveness_detection_randomized_plugin/src/presentation/widgets/circular_progress_widget/circular_progress_widget.dart';
-import 'package:lottie/lottie.dart';
+import 'package:phosphoricons_flutter/phosphoricons_flutter.dart';
 
 class LivenessDetectionStepOverlayWidget extends StatefulWidget {
   final List<LivenessDetectionStepItem> steps;
@@ -40,7 +40,6 @@ class LivenessDetectionStepOverlayWidgetState
   int _currentIndex = 0;
   double _currentStepIndicator = 0;
   late final PageController _pageController;
-  late CircularProgressWidget _circularProgressWidget;
 
   bool _pageViewVisible = false;
   Timer? _countdownTimer;
@@ -70,7 +69,6 @@ class LivenessDetectionStepOverlayWidgetState
 
   void _initializeControllers() {
     _pageController = PageController(initialPage: 0);
-    _circularProgressWidget = _buildCircularIndicator();
   }
 
   void _initializeTimer() {
@@ -105,16 +103,14 @@ class LivenessDetectionStepOverlayWidgetState
     }
 
     return CircularProgressWidget(
-      unselectedColor: Colors.grey,
-      selectedColor: Colors.green,
+      unselectedColor: Theme.of(context).colorScheme.onSurface.withAlpha(100),
+      selectedColor: Theme.of(context).colorScheme.primary,
       heightLine: _heightLine,
       current: _currentStepIndicator,
       maxStep: _indicatorMaxStep,
       child: Transform.scale(
         scale: scale,
-        child: Center(
-          child: widget.camera,
-        ),
+        child: Center(child: widget.camera),
       ),
     );
   }
@@ -159,7 +155,6 @@ class LivenessDetectionStepOverlayWidgetState
       setState(() {
         _currentIndex++;
         _currentStepIndicator += _getStepIncrement(widget.steps.length);
-        _circularProgressWidget = _buildCircularIndicator();
       });
     }
   }
@@ -170,7 +165,6 @@ class LivenessDetectionStepOverlayWidgetState
       setState(() {
         _currentIndex = 0;
         _currentStepIndicator = 0;
-        _circularProgressWidget = _buildCircularIndicator();
       });
     }
   }
@@ -185,59 +179,26 @@ class LivenessDetectionStepOverlayWidgetState
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      minimum: const EdgeInsets.all(16),
-      child: Container(
-        margin: const EdgeInsets.all(12),
-        height: double.infinity,
-        width: double.infinity,
-        color: Colors.transparent,
-        child: Stack(
-          children: [
-            GestureDetector(
-              onTap: () => Navigator.pop(context),
-              child: widget.showCurrentStep
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Back',
-                          style: TextStyle(
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black),
-                        ),
-                        Visibility(
-                          replacement: const SizedBox.shrink(),
-                          visible: widget.showDurationUiText,
-                          child: Text(
-                            _getRemainingTimeText(_remainingDuration),
-                            style: TextStyle(
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        Text(
-                          stepCounter,
-                          style: TextStyle(
-                              color: widget.isDarkMode
-                                  ? Colors.white
-                                  : Colors.black),
-                        )
-                      ],
-                    )
-                  : Text('Back',
-                      style: TextStyle(
-                          color:
-                              widget.isDarkMode ? Colors.white : Colors.black)),
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Deteksi Keaktifan'),
+        actions: [
+          if (widget.showCurrentStep)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Center(
+                child: Text(
+                  stepCounter,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ),
-            _buildBody(),
-          ],
-        ),
+        ],
       ),
+      body: _buildBody(),
     );
   }
 
@@ -247,6 +208,12 @@ class LivenessDetectionStepOverlayWidgetState
       crossAxisAlignment: CrossAxisAlignment.center,
       mainAxisSize: MainAxisSize.max,
       children: [
+        if (widget.showDurationUiText)
+          Text(
+            _getRemainingTimeText(_remainingDuration),
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+        const SizedBox(height: 16),
         _buildCircularCamera(),
         const SizedBox(height: 16),
         _buildFaceDetectionStatus(),
@@ -257,7 +224,7 @@ class LivenessDetectionStepOverlayWidgetState
           child: _buildStepPageView(),
         ),
         const SizedBox(height: 16),
-        widget.isDarkMode ? _buildLoaderDarkMode() : _buildLoaderLightMode(),
+        _buildLoader(),
       ],
     );
   }
@@ -268,7 +235,7 @@ class LivenessDetectionStepOverlayWidgetState
       width: 300,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(1000),
-        child: _circularProgressWidget,
+        child: _buildCircularIndicator(),
       ),
     );
   }
@@ -282,33 +249,24 @@ class LivenessDetectionStepOverlayWidgetState
   Widget _buildFaceDetectionStatus() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 4,
       children: [
-        SizedBox(
-          child: widget.isDarkMode
-              ? LottieBuilder.asset(
-                  widget.isFaceDetected
-                      ? 'packages/flutter_liveness_detection_randomized_plugin/src/core/assets/face-detected.json'
-                      : 'packages/flutter_liveness_detection_randomized_plugin/src/core/assets/face-id-anim.json',
-                  height: widget.isFaceDetected ? 32 : 22,
-                  width: widget.isFaceDetected ? 32 : 22,
-                )
-              : ColorFiltered(
-                  colorFilter: ColorFilter.mode(
-                      widget.isFaceDetected ? Colors.green : Colors.black,
-                      BlendMode.modulate),
-                  child: LottieBuilder.asset(
-                    widget.isFaceDetected
-                        ? 'packages/flutter_liveness_detection_randomized_plugin/src/core/assets/face-detected.json'
-                        : 'packages/flutter_liveness_detection_randomized_plugin/src/core/assets/face-id-anim.json',
-                    height: widget.isFaceDetected ? 32 : 22,
-                    width: widget.isFaceDetected ? 32 : 22,
-                  )),
+        PhosphorIcon(
+          PhosphorIconsDuotone.scanSmiley,
+          color: widget.isFaceDetected
+              ? Theme.of(context).colorScheme.primary
+              : Theme.of(context).colorScheme.error,
+          size: 24,
         ),
-        const SizedBox(width: 16),
         Text(
-          widget.isFaceDetected ? 'User Face Found' : 'User Face Not Found...',
-          style:
-              TextStyle(color: widget.isDarkMode ? Colors.white : Colors.black),
+          widget.isFaceDetected ? 'Wajah terdeteksi' : 'Wajah tidak terdeteksi',
+          style: TextStyle(
+            color: widget.isFaceDetected
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).colorScheme.error,
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -331,41 +289,22 @@ class LivenessDetectionStepOverlayWidgetState
 
   Widget _buildStepItem(BuildContext context, int index) {
     return Padding(
-      padding: const EdgeInsets.all(10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: widget.isDarkMode ? Colors.black : Colors.white,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        alignment: Alignment.center,
-        margin: const EdgeInsets.symmetric(horizontal: 30),
-        padding: const EdgeInsets.all(10),
-        child: Text(
-          widget.steps[index].title,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: widget.isDarkMode ? Colors.white : Colors.black,
-            fontSize: 24,
-            fontWeight: FontWeight.w500,
-          ),
+      padding: const EdgeInsets.all(16),
+      child: Text(
+        widget.steps[index].title,
+        textAlign: TextAlign.center,
+        style: TextStyle(
+          color: Theme.of(context).colorScheme.onPrimaryContainer,
+          fontSize: 24,
+          fontWeight: FontWeight.w500,
         ),
       ),
     );
   }
 
-  Widget _buildLoaderDarkMode() {
-    return Center(
-      child: CupertinoActivityIndicator(
-        color: !_isLoading ? Colors.transparent : Colors.white,
-      ),
-    );
-  }
-
-  Widget _buildLoaderLightMode() {
-    return Center(
-      child: CupertinoActivityIndicator(
-        color: _isLoading ? Colors.transparent : Colors.white,
-      ),
-    );
+  Widget _buildLoader() {
+    return _isLoading
+        ? const Center(child: CupertinoActivityIndicator())
+        : const SizedBox.shrink();
   }
 }

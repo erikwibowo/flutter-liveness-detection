@@ -178,10 +178,6 @@ class _HomeViewState extends State<HomeView> {
           showCurrentStep: true,
           customizedLabel: LivenessDetectionLabelModel(
             blink: 'Kedip 2-3 Kali',
-            lookDown: 'Lihat ke Bawah',
-            lookLeft: 'Lihat ke Kiri',
-            lookRight: 'Lihat ke Kanan',
-            lookUp: 'Lihat ke Atas',
             smile: 'Tersenyum Lebar',
           ),
         );
@@ -201,10 +197,6 @@ class _HomeViewState extends State<HomeView> {
           showCurrentStep: true,
           customizedLabel: LivenessDetectionLabelModel(
             blink: 'Blink Eyes',
-            lookDown: '', // Skip
-            lookLeft: '', // Skip
-            lookRight: '', // Skip
-            lookUp: 'Look Up Please',
             smile: 'Smile Wide',
           ),
         );
@@ -258,10 +250,6 @@ class _HomeViewState extends State<HomeView> {
           showCurrentStep: true,
           customizedLabel: LivenessDetectionLabelModel(
             blink: '👁️ Kedipkan Mata',
-            lookDown: '⬇️ Lihat Bawah',
-            lookLeft: '⬅️ Lihat Kiri',
-            lookRight: '➡️ Lihat Kanan',
-            lookUp: '⬆️ Lihat Atas',
             smile: '😊 Senyum Manis',
           ),
         );
